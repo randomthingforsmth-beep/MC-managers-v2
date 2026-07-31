@@ -14,3 +14,5 @@ bedrock:
 <img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/e465a8bd-0a1b-427d-a03c-babbf0d12654" />
 
 (i dont have bedrock btw)
+
+plz font mind the titles
