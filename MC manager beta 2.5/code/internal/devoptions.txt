@@ -1,0 +1,2 @@
+set "JAVA_DIR=%appdata%\.minecraft"
+set "BEDROCK_DIR=%localappdata%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang"

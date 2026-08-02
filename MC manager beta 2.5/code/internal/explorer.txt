@@ -1,0 +1,633 @@
+echo =====================================================================
+echo  [ SWITCH CORES ]      [J] Switch to Java     [B] Switch to Bedrock
+echo  [ LOCAL NETWORK ]     Your Local Network LAN Host IP: !LOCAL_IPV4!
+if "!DEV_MODE!"=="ENABLED" (
+    echo  [ ACCESS MODE ]      DEVELOPER OVERRIDE LEVEL: DEPLOYED ^(GOD MODE^)
+)
+echo ---------------------------------------------------------------------
+if "%MODE%"=="JAVA" (
+    echo  [I] Install Mod ^(.jar^)        [P] Shaders / Texture ^(.zip^)
+    echo  [W] Modrinth / CurseForge Hub [C] Live Client Logs Streamer
+    echo  [V] Virtual Server Hub ^(VS^)   [K] World Import / Export Core
+    echo  [T] Open Tool Panel           [U] Unlock World Slot Names   
+    echo  [M] View Master Logs          [O] Background RCON Network Hook
+    echo  [F] Inject Firewall Rules     [R] Flash Standby System RAM
+    echo  [S] Settings ^& Info Panel     [X] Exit Dashboard
+) else (
+    echo  [K] World Import / Export     [T] Storage Optimization Panel
+    echo  [S] Settings ^& Info Panel     [X] Exit Dashboard
+)
+echo =====================================================================
+echo  [ Directory Contents ]
+echo ---------------------------------------------------------------------
+set "count=0"
+:: Enumerate active sandbox folder path contents safely
+for /f "delims=" %%I in ('dir "!ABS_PATH!" /a /b 2^>nul') do (
+    set /a count+=1
+    set "item_!count!=%%I"
+    if exist "!ABS_PATH!\%%I\" (
+        echo  [!count!] ^<DIR^> %%I
+    ) else (
+        echo  [!count!]        %%I
+    )
+)
+
+if %count%==0 echo   ^(Directory is empty^)
+echo ---------------------------------------------------------------------
+echo  [BACK/NAV]            [Parent] Back to Parent   [Root] Back to Root
+echo =====================================================================
+echo.
+set "choice="
+set /p "choice=Enter choice: "
+
+if /i "%choice%"=="X" exit /b
+if /i "%choice%"=="S" goto SET_PANEL_REWRITE
+if /i "%choice%"=="J" (set "MODE=JAVA" & set "CURR_REL=" & goto MAIN_MENU)
+if /i "%choice%"=="B" (set "MODE=BEDROCK" & set "CURR_REL=" & goto MAIN_MENU)
+if /i "%choice%"=="Root" (set "CURR_REL=" & goto MAIN_MENU)
+if /i "%choice%"=="Parent" goto NAVIGATE_BACK
+if /i "%choice%"=="D" (if "!DEV_ACCESS_ARMED!"=="1" goto DEV_GOD_PANEL)
+
+if "%MODE%"=="JAVA" (
+    if /i "%choice%"=="W" goto LAUNCH_HUB
+    if /i "%choice%"=="U" goto UNLOCK_TOOL
+    if /i "%choice%"=="M" goto VIEW_LOGS
+    if /i "%choice%"=="I" goto JAR_SELECTOR
+    if /i "%choice%"=="P" goto ZIP_SELECTOR
+    if /i "%choice%"=="C" goto LIVE_CHAT_STREAM
+    if /i "%choice%"=="V" goto VIRTUAL_SERVER_HUB
+    if /i "%choice%"=="K" goto WORLD_ARCHIVE_ENGINE
+    if /i "%choice%"=="T" goto UTILITY_PANEL
+    if /i "%choice%"=="O" goto LAN_SERVER_CONSOLE_HOOK
+    if /i "%choice%"=="F" goto FIREWALL_INJECTOR
+    if /i "%choice%"=="R" goto RAM_OPTIMIZER
+) else (
+    if /i "%choice%"=="K" goto BEDROCK_SAVE_CORE
+    if /i "%choice%"=="T" goto BEDROCK_UTILITY_PANEL
+)
+
+if "%choice%"=="" goto MAIN_MENU
+echo %choice%| findstr /r "^[0-9][0-9]*$" >nul
+if errorlevel 1 (echo [INVALID] Choose a number or menu letter. & timeout /t 2 >nul & goto MAIN_MENU)
+if %choice% gtr %count% (echo [INVALID] Selection out of bounds. & timeout /t 2 >nul & goto MAIN_MENU)
+if %choice% lss 1 (echo [INVALID] Selection out of bounds. & timeout /t 2 >nul & goto MAIN_MENU)
+
+set "selected_item=!item_%choice%!"
+set "TARGET_PATH=!ABS_PATH!\!selected_item!"
+
+if not exist "!TARGET_PATH!\" goto FILE_ACTIONS
+if exist "!TARGET_PATH!\level.dat" (if "%MODE%"=="JAVA" goto WORLD_OPTIONS)
+
+if "%CURR_REL%"=="" (set "CURR_REL=!selected_item!") else (set "CURR_REL=!CURR_REL!\!selected_item!")
+goto MAIN_MENU
+
+:NAVIGATE_BACK
+if "%CURR_REL%"=="" (echo [REJECTED] Cannot breach boundaries. & timeout /t 2 >nul & goto MAIN_MENU)
+set "temp_rel=%CURR_REL%"
+set "CURR_REL="
+for /f "tokens=1* delims=\" %%a in ("!temp_rel!") do (
+    if not "%%b"=="" (
+        if "!CURR_REL!"=="" (set "CURR_REL=%%a") else (set "CURR_REL=!CURR_REL!\%%a")
+        set "temp_rel=%%b"
+    )
+)
+goto MAIN_MENU
+:LAN_SERVER_CONSOLE_HOOK
+cls
+echo =====================================================================
+echo  BACKGROUND NETWORK RCON SERVER COMMAND ROUTER
+echo =====================================================================
+echo  Your Local Host IP is: !LOCAL_IPV4!
+echo.
+set "TARGET_SERVER_IP="
+set /p "TARGET_SERVER_IP=Enter target LAN Server IP Address: "
+if "!TARGET_SERVER_IP!"=="" goto MAIN_MENU
+
+set "RCON_PORT=25575"
+set /p "RCON_PORT=Enter RCON Port [Default 25575]: "
+
+set "RCON_PASS="
+set /p "RCON_PASS=Enter RCON Password (Secret Key): "
+
+cls
+echo =====================================================================
+echo  BACKGROUND FORCE RCON TERMINAL ESTABLISHED
+echo =====================================================================
+echo  Piping network sockets directly to: !TARGET_SERVER_IP!:!RCON_PORT!
+echo  Type any admin command below (e.g., 'op player', 'stop', 'say hello').
+echo  Type 'BACK' to disconnect the background RCON stream.
+echo ---------------------------------------------------------------------
+echo.
+:LAN_CONSOLE_LOOP
+set "srv_cmd="
+set /p "srv_cmd=RCON Admin Command: "
+if /i "!srv_cmd!"=="BACK" goto MAIN_MENU
+if "!srv_cmd!"==" " goto LAN_CONSOLE_LOOP
+if "!srv_cmd!"=="" goto LAN_CONSOLE_LOOP
+
+echo Sending background packet payload...
+powershell -Command ^
+    "$ip = '!TARGET_SERVER_IP!'; $port = [int]'!RCON_PORT!'; $pass = '!RCON_PASS!'; $cmd = '!srv_cmd!';" ^
+    "$tcp = New-Object System.Net.Sockets.TcpClient;" ^
+    "try { $tcp.Connect($ip, $port); $stream = $tcp.GetStream(); } catch { Write-Host '[FAIL_CONN]'; exit; }" ^
+    "function Send-Packet($id, $type, $payload) {" ^
+    "  $bytes = [System.Text.Encoding]::ASCII.GetBytes($payload);" ^
+    "  $size = $bytes.Length + 10;" ^
+    "  $packet = New-Object byte[] ($size + 4);" ^
+    "  [BitConverter]::GetBytes($size).CopyTo($packet, 0);" ^
+    "  [BitConverter]::GetBytes($id).CopyTo($packet, 4);" ^
+    "  [BitConverter]::GetBytes($type).CopyTo($packet, 8);" ^
+    "  $bytes.CopyTo($packet, 12);" ^
+    "  $stream.Write($packet, 0, $packet.Length); $stream.Flush();" ^
+    "  $resSizeBuf = New-Object byte[] 4; $stream.Read($resSizeBuf, 0, 4) | Out-Null;" ^
+    "  $resSize = [BitConverter]::ToInt32($resSizeBuf, 0);" ^
+    "  $resPacket = New-Object byte[] $resSize;" ^
+    "  $stream.Read($resPacket, 0, $resSize) | Out-Null;" ^
+    "  return [System.Text.Encoding]::ASCII.GetString($resPacket, 8, $resSize - 9);" ^
+    "}" ^
+    "if ((Send-Packet 1 3 $pass) -eq '') { [void](Send-Packet 2 2 $cmd); Write-Host 'SUCCESS'; } else { Write-Host '[FAIL_AUTH]'; }" ^
+    "$tcp.Close();" > "%temp%\rcon_res.tmp" 2>&1
+
+set "RCON_STATUS="
+set /p RCON_STATUS= < "%temp%\rcon_res.tmp"
+del /f /q "%temp%\rcon_res.tmp" >nul 2>&1
+
+if "!RCON_STATUS!"=="SUCCESS" (echo [SUCCESS] Command executed in background!) else if "!RCON_STATUS!"=="[FAIL_AUTH]" (echo [ERROR] RCON Auth Failed!) else (echo [ERROR] Timeout!)
+echo.
+goto LAN_CONSOLE_LOOP
+:FIREWALL_INJECTOR
+cls
+echo =====================================================================
+echo  AUTOMATED WINDOWS DEFENDER FIREWALL RULE INJECTOR
+echo =====================================================================
+echo  Injecting rules to unblock multiplayer ports natively...
+echo.
+netsh advfirewall firewall add rule name="Minecraft_Java_Inbound" dir=in action=allow protocol=TCP localport=25565-25575 >nul 2>&1
+netsh advfirewall firewall add rule name="Minecraft_Java_Outbound" dir=out action=allow protocol=TCP localport=25565-25575 >nul 2>&1
+netsh advfirewall firewall add rule name="Minecraft_Bedrock_Inbound" dir=in action=allow protocol=UDP localport=19132-19133 >nul 2>&1
+echo [SUCCESS] Inbound and Outbound ports unblocked!
+timeout /t 3 >nul
+goto MAIN_MENU
+:RAM_OPTIMIZER
+cls
+echo =====================================================================
+echo  STANDBY SYSTEM CACHE RAM FLASH OPTIMIZER
+echo =====================================================================
+echo  Flushing standby memory allocations to maximize rendering space...
+echo.
+powershell -Command "[System.GC]::Collect(); [System.GC]::WaitForPendingFinalizers();" >nul 2>&1
+echo [SUCCESS] System background heap registers flushed completely!
+timeout /t 3 >nul
+goto MAIN_MENU
+:JAR_SELECTOR
+cls
+echo =====================================================================
+echo  OPENING NATIVE WINDOWS JAR FILE SELECTOR...
+echo =====================================================================
+set "dialog_cmd=Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Filter = 'Java Mod Files (*.jar)|*.jar'; $f.Title = 'Select a Minecraft Mod File'; if($f.ShowDialog() -eq 'OK'){Write-Output $f.FileName}"
+set "CHOSEN_JAR="
+for /f "delims=" %%P in ('powershell -Command "%dialog_cmd%"') do (set "CHOSEN_JAR=%%P")
+if "%CHOSEN_JAR%"=="" (echo [CANCELLED] File selection was skipped. & timeout /t 2 >nul & goto MAIN_MENU)
+
+cls
+echo =====================================================================
+echo  PROCESSING MOD FILE ARRIVAL
+echo =====================================================================
+for %%F in ("%CHOSEN_JAR%") do set "JAR_NAME=%%~nxF"
+if not exist "!ROOT_DIR!\mods" mkdir "!ROOT_DIR!\mods"
+copy /y "%CHOSEN_JAR%" "!ROOT_DIR!\mods\!JAR_NAME!" >nul
+echo [%date% %time%] INSTALLED VIA JAR SELECTOR: !JAR_NAME! >> "!ROOT_DIR!\manager_log.txt"
+echo  [SUCCESS] !JAR_NAME! has been installed to .minecraft\mods!
+echo =====================================================================
+timeout /t 3 >nul
+goto MAIN_MENU
+:ZIP_SELECTOR
+cls
+echo =====================================================================
+echo  OPENING NATIVE WINDOWS ZIP FILE SELECTOR...
+echo =====================================================================
+set "zip_cmd=Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Filter = 'Minecraft Archives (*.zip)|*.zip'; $f.Title = 'Select Shaders or Resource Pack'; if($f.ShowDialog() -eq 'OK'){Write-Output $f.FileName}"
+set "CHOSEN_ZIP="
+for /f "delims=" %%P in ('powershell -Command "%zip_cmd%"') do (set "CHOSEN_ZIP=%%P")
+if "%CHOSEN_ZIP%"=="" (echo [CANCELLED] File selection was skipped. & timeout /t 2 >nul & goto MAIN_MENU)
+for %%F in ("%CHOSEN_ZIP%") do set "ZIP_NAME=%%~nxF"
+
+cls
+echo =====================================================================
+echo  ROUTING ZIP PACKAGE ARTIFACT
+echo =====================================================================
+echo  Install as Shaders   Install as Resource Pack
+echo =====================================================================
+set "zip_route="
+set /p "zip_route=Choose destination: "
+if "%zip_route%"=="1" (
+    if not exist "!ROOT_DIR!\shaderpacks" mkdir "!ROOT_DIR!\shaderpacks"
+    copy /y "%CHOSEN_ZIP%" "!ROOT_DIR!\shaderpacks\!ZIP_NAME!" >nul
+    echo Success! Shader package deployed.
+    timeout /t 2 >nul
+)
+if "%zip_route%"=="2" (
+    if not exist "!ROOT_DIR!\resourcepacks" mkdir "!ROOT_DIR!\resourcepacks"
+    copy /y "%CHOSEN_ZIP%" "!ROOT_DIR!\resourcepacks\!ZIP_NAME!" >nul
+    echo Success! Texture resources deployed.
+    timeout /t 2 >nul
+)
+goto MAIN_MENU
+:WORLD_OPTIONS
+cls
+echo =====================================================================
+echo  MANAGING WORLD: %selected_item%
+echo =====================================================================
+echo  Open / Step inside World Folder
+echo  LIVE SELF-DESTRUCT (Wipe while playing + Block Saving)
+echo  VIEW WORLD ISOLATED OPERATION LOG
+echo  [B] Go Back
+echo =====================================================================
+set "w_choice="
+set /p "w_choice=Select an action: "
+if /i "%w_choice%"=="B" goto MAIN_MENU
+if "%w_choice%"=="1" (if "%CURR_REL%"=="" (set "CURR_REL=!selected_item!") else (set "CURR_REL=!CURR_REL!\!selected_item!") & goto MAIN_MENU)
+if "%w_choice%"=="2" goto LIVE_DESTRUCT
+if "%w_choice%"=="3" goto WORLD_LOGS
+goto WORLD_OPTIONS
+:LIVE_DESTRUCT
+cls
+echo =====================================================================
+echo                       SELF DESTRUCTION
+echo =====================================================================
+for /l %%i in (10,-1,1) do (
+    echo   T-minus %%i seconds...
+    echo  
+    for /f "tokens=2 delims=," %%A in ('openfiles /query /fo csv 2^>nul ^| findstr /i "%selected_item%"') do (openfiles /disconnect /id %%A >nul 2>&1)
+    del /f /q /s "!TARGET_PATH!\*" >nul 2>&1
+    rmdir /s /q "!TARGET_PATH!\region" >nul 2>&1
+    rmdir /s /q "!TARGET_PATH!\entities" >nul 2>&1
+    timeout /t 1 >nul
+)
+echo [%date% %time%] CRITICAL DESTRUCTION TRIGGERED ON WORLD: %selected_item% >> "!ROOT_DIR!\manager_log.txt"
+
+:WIPE_LOOP
+for /f "tokens=2 delims=," %%A in ('openfiles /query /fo csv 2^>nul ^| findstr /i "%selected_item%"') do (openfiles /disconnect /id %%A >nul 2>&1)
+del /f /q /s "!TARGET_PATH!\*" >nul 2>&1
+rmdir /s /q "!TARGET_PATH!" >nul 2>&1
+if not exist "!TARGET_PATH!" (echo block > "!TARGET_PATH!" & attrib +R +H +S "!TARGET_PATH!" >nul 2>&1 & goto COMPLETED)
+goto WIPE_LOOP
+
+:COMPLETED
+echo =====================================================================
+echo  SUCCESS: World annihilated. Anti-save block planted successfully.
+echo =====================================================================
+timeout /t 3 >nul
+set "CURR_REL="
+goto MAIN_MENU
+:FILE_ACTIONS
+cls
+echo =====================================================================
+echo  FILE VIEW: %selected_item%
+echo =====================================================================
+set "f_ext=%~xselected_item%"
+if /i "%selected_item%"=="latest.log" (echo  [L] Parse Crash Errors) else if /i "%f_ext%"==".png" (echo  [V] Open Image in Windows Viewer)
+echo  [D] Force Delete This File
+echo  [B] Go Back
+echo =====================================================================
+set "file_choice="
+set /p "file_choice=Select operation: "
+if /i "%file_choice%"=="B" goto MAIN_MENU
+if /i "%file_choice%"=="D" (del /f /q "!TARGET_PATH!" >nul 2>&1 & goto MAIN_MENU)
+if /i "%file_choice%"=="V" (if /i "%f_ext%"==".png" start "" "!TARGET_PATH!" & goto MAIN_MENU)
+if /i "%file_choice%"=="L" (
+    cls
+    findstr /i "ERROR FATAL EXCEPTION CRASHED" "!TARGET_PATH!"
+    if %errorlevel% neq 0 echo No severe crash flags detected in this file.
+    pause & goto MAIN_MENU
+)
+goto MAIN_MENU
+:UTILITY_PANEL
+cls
+echo =====================================================================
+echo  ADVANCED MINECRAFT JAVA TERMINAL UTILITIES
+echo =====================================================================
+echo  Nuke Mods Folder (Complete Clear Slate)
+echo  Analyze World Size Allocations
+echo  Reset Graphics Options (Fix Unlaunchable Settings)
+echo  Lock Active World into Ghost Storage (Invisible Mode)
+echo  Restore World from Ghost Storage
+echo  [B] Go Back to Main Dashboard
+echo =====================================================================
+set "util_choice="
+set /p "util_choice=Select action: "
+if /i "%util_choice%"=="B" goto MAIN_MENU
+if "%util_choice%"=="1" (cls & set "nuke_conf=" & set /p "nuke_conf=Type 'NUKE' to confirm deletion: " & if "!nuke_conf!"=="NUKE" (del /f /q /s "!ROOT_DIR!\mods\*" >nul 2>&1 & echo Mods folder cleaned.) & goto UTILITY_PANEL)
+if "%util_choice%"=="2" (cls & dir "!ROOT_DIR!\saves" /s /a /w | findstr "File(s)" & pause & goto UTILITY_PANEL)
+if "%util_choice%"=="3" (if exist "!ROOT_DIR!\options.txt" del /f /q "!ROOT_DIR!\options.txt" & goto UTILITY_PANEL)
+if "%util_choice%"=="4" (cls & set "hide_world=" & set /p "hide_world=Folder name to hide: " & if exist "!ROOT_DIR!\saves\!hide_world!" (if not exist "!ROOT_DIR!\ghost_storage" mkdir "!ROOT_DIR!\ghost_storage" & move /y "!ROOT_DIR!\saves\!hide_world!" "%ROOT_DIR%\ghost_storage\" >nul) & goto UTILITY_PANEL)
+if "%util_choice%"=="5" (cls & set "show_world=" & set /p "show_world=Folder name to restore: " & if exist "!ROOT_DIR!\ghost_storage\!show_world!" move /y "!ROOT_DIR!\ghost_storage\!show_world!" "!ROOT_DIR!\saves\" >nul)
+goto UTILITY_PANEL
+:VIRTUAL_SERVER_HUB
+cls
+echo =====================================================================
+echo  MINECRAFT LOCAL VIRTUAL SERVER (VS) DESKTOP CONTROLLER
+echo =====================================================================
+echo  OVER-THE-AIR (OTA) DIGITAL CORE DOWNLOAD ENGINE (WEB WIZARD)
+echo  Configure Server Properties (Name, RAM, IP, Cracked Toggle, Port)
+echo  Boot Virtual Server Instance (Launch Local Host)
+echo  FORCE STOP VIRTUAL SERVER (Kill Background Java Window)
+echo  STREAM LIVE VIRTUAL SERVER CONSOLE LOGS
+echo  [B] Go Back to Main Dashboard
+echo =====================================================================
+set "vs_choice="
+set /p "vs_choice=Select active virtual machine operation: "
+if /i "%vs_choice%"=="B" goto MAIN_MENU
+if "%vs_choice%"=="1" goto OTA_WEB_DOWNLOADER
+goto SERVER_PROCESS_MANAGEMENT
+:OTA_WEB_DOWNLOADER
+cls
+echo =====================================================================
+echo  OVER-THE-AIR (OTA) MINECRAFT SERVER CORE WIZARD
+echo =====================================================================
+set "target_ver=1.20.1"
+set /p "target_ver=Enter target Minecraft version [e.g., 1.20.1, 1.21, 1.16.5]: "
+
+echo.
+echo  Contacting official Mojang API manifest arrays... Please hold...
+set "TEMP_VBS=%temp%\get_core_%random%.vbs"
+set "DOWNLOAD_URL="
+
+(
+    echo Set req = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    echo req.open "GET", "https://mojang.com", False
+    echo req.send
+    echo text = req.responseText
+    echo idx = InStr(text, """id"": """ & target_ver & """")
+    echo If idx = 0 Then WScript.Quit 1
+    echo subtext = Mid(text, idx, 1000)
+    echo urlIdx = InStr(subtext, """url"": """)
+    echo urlEnd = InStr(Mid(subtext, urlIdx + 7), """")
+    echo metaUrl = Mid(subtext, urlIdx + 7, urlEnd - 1)
+    echo req.open "GET", metaUrl, False
+    echo req.send
+    echo text2 = req.responseText
+    echo sIdx = InStr(text2, """server"": {")
+    echo sSub = Mid(text2, sIdx, 1000)
+    echo dIdx = InStr(sSub, """url"": """)
+    echo dEnd = InStr(Mid(sSub, dIdx + 7), """")
+    echo WScript.Echo Mid(sSub, dIdx + 7, dEnd - 1)
+) > "%TEMP_VBS%"
+
+for /f "delims=" %%A in ('cscript //nologo "%TEMP_VBS%" 2^>nul') do set "DOWNLOAD_URL=%%A"
+del /f /q "%TEMP_VBS%" >nul 2>&1
+
+if "%DOWNLOAD_URL%"=="" (echo [ERROR] Version profile '!target_ver!' not resolved on remote master trees. & pause & goto VIRTUAL_SERVER_HUB)
+
+if not exist "!ROOT_DIR!\virtual_servers\VS-1" mkdir "!ROOT_DIR!\virtual_servers\VS-1"
+echo Found core download link! Deploying streaming socket pipeline...
+powershell -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%DOWNLOAD_URL%' -OutFile '!ROOT_DIR!\virtual_servers\VS-1\server_!target_ver!.jar'"
+
+echo server_!target_ver!.jar > "!ROOT_DIR!\virtual_servers\VS-1\vs_core_name.cfg"
+(
+    echo server-ip=
+    echo server-port=25565
+    echo online-mode=true
+    echo max-players=10
+    echo motd=Universal OTA Server Sandbox (!target_ver!^)
+    echo level-name=world
+) > "!ROOT_DIR!\virtual_servers\VS-1\server.properties"
+echo eula=true > "!ROOT_DIR!\virtual_servers\VS-1\eula.txt"
+echo 2 > "!ROOT_DIR!\virtual_servers\VS-1\vs_ram.cfg"
+
+echo.
+echo [SUCCESS] Minecraft Server Version !target_ver! successfully deployed over the air!
+pause & goto VIRTUAL_SERVER_HUB
+:SERVER_PROCESS_MANAGEMENT
+if "%vs_choice%"=="2" (
+    cls
+    if not exist "!ROOT_DIR!\virtual_servers\VS-1\server.properties" (echo [ERROR] Run Deployment first. & pause & goto VIRTUAL_SERVER_HUB)
+    set "vs_ip=" & set "vs_port=25565" & set "vs_players=10" & set "cracked_choice=1" & set "vs_name=A Minecraft Server" & set "vs_gb=2"
+    set /p "vs_name=Custom Server Name: "
+    set /p "vs_gb=RAM Size Limit (In Gigabytes): "
+    set /p "vs_ip=Custom Server IP: "
+    set /p "vs_port=Server Network Port: "
+    set /p "vs_players=Max Players: "
+    echo Premium Only (1)  Cracked Allowed (2)
+    set /p "cracked_choice=Select mode: "
+    set "vs_online=true"
+    if "!cracked_choice!"=="2" set "vs_online=false"
+    (
+        echo server-ip=!vs_ip!
+        echo server-port=!vs_port!
+        echo online-mode=!vs_online!
+        echo max-players=!vs_players!
+        echo motd=!vs_name!
+        echo level-name=world
+    ) > "!ROOT_DIR!\virtual_servers\VS-1\server.properties"
+    echo !vs_gb! > "!ROOT_DIR!\virtual_servers\VS-1\vs_ram.cfg"
+    timeout /t 2 >nul & goto VIRTUAL_SERVER_HUB
+)
+
+if "%vs_choice%"=="3" (
+    cls
+    set "RUNNING_JAR_NAME=server.jar"
+    if exist "!ROOT_DIR!\virtual_servers\VS-1\vs_core_name.cfg" (
+        set /p RUNNING_JAR_NAME= < "!ROOT_DIR!\virtual_servers\VS-1\vs_core_name.cfg"
+        set "RUNNING_JAR_NAME=!RUNNING_JAR_NAME: =!"
+    )
+    if not exist "!ROOT_DIR!\virtual_servers\VS-1\!RUNNING_JAR_NAME!" (echo [ERROR] Core missing. Run Wizard first. & pause & goto VIRTUAL_SERVER_HUB)
+    set "boot_ram=2"
+    if exist "!ROOT_DIR!\virtual_servers\VS-1\vs_ram.cfg" set /p "boot_ram=" < "!ROOT_DIR!\virtual_servers\VS-1\vs_ram.cfg"
+    cd /d "!ROOT_DIR!\virtual_servers\VS-1"
+    start "Virtual Server Instance Workspace (VS-1)" cmd /k "java -Xmx!boot_ram!G -Xms1G -jar !RUNNING_JAR_NAME! nogui"
+    cd /d "%ROOT_DIR%" & goto MAIN_MENU
+)
+
+if "%vs_choice%"=="4" (cls & taskkill /f /fi "WINDOWTITLE eq Virtual Server Instance Workspace*" >nul 2>&1 & timeout /t 2 >nul & goto VIRTUAL_SERVER_HUB)
+if "%vs_choice%"=="5" (cls & if not exist "!ROOT_DIR!\virtual_servers\VS-1\logs\latest.log" (echo [ERROR] No logs. & pause & goto VIRTUAL_SERVER_HUB)
+    powershell -Command "Get-Content --Wait -Tail 30 '!ROOT_DIR!\virtual_servers\VS-1\logs\latest.log'" & goto VIRTUAL_SERVER_HUB)
+goto VIRTUAL_SERVER_HUB
+:WORLD_ARCHIVE_ENGINE
+cls
+echo =====================================================================
+echo  JAVA SINGLEPLAYER WORLD ARCHIVE ENGINE
+echo =====================================================================
+echo  Export Singleplayer World Save to Backup Directory
+echo  Package World Save directly into Compressed Archive (.zip)
+echo  Import World Archive into Active Saves Grid
+echo ---------------------------------------------------------------------
+echo  [B] Go Back to Main Dashboard
+echo =====================================================================
+set "wa_choice="
+set /p "wa_choice=Select action: "
+if /i "%wa_choice%"=="B" goto MAIN_MENU
+if "%wa_choice%"=="1" (cls & set /p "src_w=Folder Name: " & if exist "!ROOT_DIR!\saves\!src_w!" (if not exist "!ROOT_DIR!\world_backups" mkdir "!ROOT_DIR!\world_backups" & xcopy "!ROOT_DIR!\saves\!src_w!" "!ROOT_DIR!\world_backups\!src_w!_Bak_%random%\" /E /I /H /Y >nul 2>&1 & echo Cloned.) & timeout /t 2 >nul & goto WORLD_ARCHIVE_ENGINE)
+if "%wa_choice%"=="2" (cls & set /p "zip_w=Folder Name: " & if exist "!ROOT_DIR!\saves\!zip_w!" (if not exist "!ROOT_DIR!\world_backups" mkdir "!ROOT_DIR!\world_backups" & powershell -Command "Compress-Archive -Path '%ROOT_DIR%\saves\!zip_w!' -DestinationPath '%ROOT_DIR%\world_backups\!zip_w!_Export_%random%.zip' -Force" & echo Packed.) & pause & goto WORLD_ARCHIVE_ENGINE)
+if "%wa_choice%"=="3" (cls & set "w_pick=Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Filter = 'World Archives (*.zip)|*.zip'; if($f.ShowDialog() -eq 'OK'){Write-Output $f.FileName}"
+    for /f "delims=" %%P in ('powershell -Command "%w_pick%"') do set "CHOSEN_W_ZIP=%%P"
+    if not "!CHOSEN_W_ZIP!"=="" (for %%F in ("!CHOSEN_W_ZIP!") do set "W_ZIP_NAME=%%~nF" & powershell -Command "Expand-Archive -Path '!CHOSEN_W_ZIP!' -DestinationPath '%ROOT_DIR%\saves\!W_ZIP_NAME!' -Force" & echo Unpacked.) & timeout /t 2 >nul & goto WORLD_ARCHIVE_ENGINE)
+goto WORLD_ARCHIVE_ENGINE
+
+:BEDROCK_SAVE_CORE
+cls
+echo =====================================================================
+echo  BEDROCK SAVE MANAGEMENT ^& REPOSITORY PIPELINE
+echo =====================================================================
+echo  Export Bedrock World to Backup Archive Folder
+echo  Package Bedrock Save World directly into .zip Pack
+echo  Import Packaged .zip Save back into Active Bedrock Worlds Folder
+echo ---------------------------------------------------------------------
+echo  [B] Go Back to Main Dashboard
+echo =====================================================================
+set "wa_choice="
+set /p "wa_choice=Select action: "
+if /i "%wa_choice%"=="B" goto MAIN_MENU
+if "%wa_choice%"=="1" (cls & set /p "src_w=Bedrock Folder Name: " & if exist "!ROOT_DIR!\minecraftWorlds\!src_w!" (if not exist "!ROOT_DIR!\bedrock_backups" mkdir "!ROOT_DIR!\bedrock_backups" & xcopy "!ROOT_DIR!\minecraftWorlds\!src_w!" "!ROOT_DIR!\bedrock_backups\!src_w!_Bak_%random%\" /E /I /H /Y >nul 2>&1 & echo Cloned.) & timeout /t 2 >nul & goto BEDROCK_SAVE_CORE)
+if "%wa_choice%"=="2" (cls & set /p "zip_w=Folder Name: " & if exist "!ROOT_DIR!\minecraftWorlds\!zip_w!" (if not exist "!ROOT_DIR!\bedrock_backups" mkdir "!ROOT_DIR!\bedrock_backups" & powershell -Command "Compress-Archive -Path '%ROOT_DIR%\minecraftWorlds\!zip_w!' -DestinationPath '!dest_zip!' -Force" & echo Packed.) & pause & goto BEDROCK_SAVE_CORE)
+if "%wa_choice%"=="3" (cls & set "w_pick=Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Filter = 'Bedrock Archives (*.zip)|*.zip'; if($f.ShowDialog() -eq 'OK'){Write-Output $f.FileName}"
+    for /f "delims=" %%P in ('powershell -Command "%w_pick%"') do set "CHOSEN_W_ZIP=%%P"
+    if not "!CHOSEN_W_ZIP!"=="" (for %%F in ("!CHOSEN_W_ZIP!") do set "W_ZIP_NAME=%%~nF" & powershell -Command "Expand-Archive -Path '!CHOSEN_W_ZIP!' -DestinationPath '%ROOT_DIR%\minecraftWorlds\!W_ZIP_NAME!' -Force" & echo Unpacked.) & timeout /t 2 >nul & goto BEDROCK_SAVE_CORE)
+goto BEDROCK_SAVE_CORE
+:SET_PANEL_REWRITE
+cls
+echo =====================================================================
+echo  [ PART 21: CONTROL PANEL CONFIGURATION SETTINGS ]
+echo =====================================================================
+echo  Application Suite Title Name: Random MC manager
+echo  Build Compilation Revision : Version Beta 2.0 64 BIT
+echo  Active Interface Engine Code: Windows Command Processor (cmd.exe)
+echo.
+echo  [D] Toggle Advanced Developer Mode ^(Requires Verification^)
+echo  [B] Return to Dashboard Workspace Home
+echo ---------------------------------------------------------------------
+echo  A320NEO/AveryPlaysGames
+echo =====================================================================
+echo.
+set "set_choice="
+set /p "set_choice=Enter selection link: "
+if /i "!set_choice!"=="B" goto MAIN_MENU
+if /i "!set_choice!"=="D" (
+    cls
+    echo =====================================================================
+    echo  SECURITY ACCESS VALIDATION REQUIRED
+    echo =====================================================================
+    set "pass_check="
+    set /p "pass_check=Enter Developer Override Passkey: "
+    if "!pass_check!"=="A320NEO" (
+        set "DEV_MODE=ENABLED"
+        set "DEV_ACCESS_ARMED=1"
+        echo Access granted! Developer Hotkey [D] has been added to the main options array.
+        timeout /t 3 >nul
+    ) else (
+        echo [ACCESS DENIED] Invalid master credentials.
+        timeout /t 2 >nul
+    )
+    goto SET_PANEL_REWRITE
+)
+goto SET_PANEL_REWRITE
+:DEV_GOD_PANEL
+cls
+echo =====================================================================
+echo  [ ADVANCED DEVELOPER OVERRIDE COMMAND BOARD ]
+echo =====================================================================
+echo  Mirror Multi-User Network LAN Chat Counters (Live Chat Scraper)
+echo  Dump Active Java Network Sockets Memory Tables (Diagnostics)
+echo  Terminate All Ghost Thread Background Handles (Force Core Reset)
+echo  [B] Disconnect Override Channel and Return Home
+echo =====================================================================
+echo.
+set "dev_choice="
+set /p "dev_choice=Select active override execution step: "
+if /i "!dev_choice!"=="B" goto MAIN_MENU
+
+if "!dev_choice!"=="1" (
+    cls
+    echo =====================================================================
+    echo  LIVE NETWORK MULTIPLAYER REPLICATION STREAM (STREAMING CONSOLE CHAT)
+    echo =====================================================================
+    echo  Listening to remote socket variables threads... Press Ctrl+C to drop.
+    if exist "!ROOT_DIR!\virtual_servers\VS-1\logs\latest.log" (
+        powershell -Command "Get-Content -Wait -Tail 20 '!ROOT_DIR!\virtual_servers\VS-1\logs\latest.log' | Where-Object { $_ -match '\[chat\]' -or $_ -match 'logged in' -or $_ -match 'issued server command' }"
+    ) else (
+        echo [ERROR] Server logs file cluster not found. Launch a live session first.
+        pause
+    )
+    goto DEV_GOD_PANEL
+)
+
+if "!dev_choice!"=="2" (
+    cls
+    echo Dumping socket diagnostics over current architecture...
+    netstat -ano | findstr "25565 25575 19132"
+    pause & goto DEV_GOD_PANEL
+)
+
+if "!dev_choice!"=="3" (
+    cls
+    echo Killing broken handle registers memory locks...
+    taskkill /f /im java.exe >nul 2>&1
+    taskkill /f /im javaw.exe >nul 2>&1
+    echo [SUCCESS] Memory freed! Background locks destroyed.
+    timeout /t 2 >nul & goto DEV_GOD_PANEL
+)
+goto DEV_GOD_PANEL
+:BEDROCK_UTILITY_PANEL
+cls
+echo =====================================================================
+echo  BEDROCK CLEANER ^& STORAGE UTILITIES
+echo =====================================================================
+echo  Wipe Temp Cache Folder (Clear Rendering Lag Artifacts)
+echo  Purge Behavior Pack Cache Container Space
+echo  Nuke Global Resource Pack Cache Space
+echo ---------------------------------------------------------------------
+echo  [B] Go Back to Dashboard Home
+echo =====================================================================
+set "util_choice="
+set /p "util_choice=Select option: "
+if /i "%util_choice%"=="B" goto MAIN_MENU
+if "%util_choice%"=="1" (rmdir /s /q "%localappdata%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\AC\Temp" >nul 2>&1 & echo Cache Wiped. & timeout /t 2 >nul)
+if "%util_choice%"=="2" (rmdir /s /q "!ROOT_DIR!\behavior_packs" >nul 2>&1 & mkdir "!ROOT_DIR!\behavior_packs" >nul 2>&1 & echo Behavior Cleared. & timeout /t 2 >nul)
+if "%util_choice%"=="3" (rmdir /s /q "!ROOT_DIR!\resource_packs" >nul 2>&1 & mkdir "!ROOT_DIR!\resource_packs" >nul 2>&1 & echo Resource Cleared. & timeout /t 2 >nul)
+goto BEDROCK_UTILITY_PANEL
+
+:LIVE_CHAT_STREAM
+cls
+if not exist "!ROOT_DIR!\logs\latest.log" (echo [ERROR] No active logs found. Launch Minecraft first. & pause & goto MAIN_MENU)
+powershell -Command "Get-Content '!ROOT_DIR!\logs\latest.log' -Wait -Tail 30 | Where-Object { $_ -match '\[chat\]' -or $_ -match 'logged in with entity' -or $_ -match 'left the game' -or $_ -match 'teleported' -or $_ -match 'died' }"
+goto MAIN_MENU
+
+:LAUNCH_HUB
+cls
+echo  Open CurseForge   Open Modrinth
+set /p "web_choice=Select platform: "
+if "%web_choice%"=="1" start msedge --app="https://curseforge.com"
+if "%web_choice%"=="2" start msedge --app="https://modrinth.com"
+goto MAIN_MENU
+
+:UNLOCK_TOOL
+cls
+set "u_count=0"
+for /f "delims=" %%G in ('dir "!ROOT_DIR!\saves" /a-d /b 2^>nul') do (
+    set /a u_count+=1
+    set "block_!u_count!=%%G"
+    echo  [!u_count!] Blocked Slot: %%G
+)
+if %u_count%==0 (echo No blocked slots found. & pause & goto MAIN_MENU)
+set /p "u_choice=Enter choice to unlock name slot or B to go back: "
+if /i "%u_choice%"=="B" goto MAIN_MENU
+if "%u_choice%"=="" goto MAIN_MENU
+set "to_unlock=!block_%u_choice%!"
+attrib -R -H -S "!ROOT_DIR!\saves\!to_unlock!" >nul 2>&1
+del /f /q "!ROOT_DIR!\saves\!to_unlock!" >nul 2>&1
+echo [%date% %time%] UNLOCKED SLOT: %to_unlock% >> "!ROOT_DIR!\manager_log.txt"
+echo Slot successfully unlocked!
+timeout /t 2 >nul
+goto MAIN_MENU
+
+:WORLD_LOGS
+cls
+if not exist "!TARGET_PATH!\world_history.log" (echo No past logs found.) else (type "!TARGET_PATH!\world_history.log")
+pause
+goto MAIN_MENU
+
+:VIEW_LOGS
+cls
+if not exist "!ROOT_DIR!\manager_log.txt" (echo Log file is empty.) else (type "!ROOT_DIR!\manager_log.txt")
+pause
+goto MAIN_MENU

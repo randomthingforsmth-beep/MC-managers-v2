@@ -1,0 +1,13 @@
+@echo off
+:: --- STAGE 1: PRIVILEGE GATING ---
+openfiles >nul 2>&1
+if %errorlevel% neq 0 (
+    echo =====================================================================
+    echo  [ERROR] THIS SCRIPT REQUIRES ADMINISTRATOR RIGHTS
+    echo =====================================================================
+    echo  Please close this window, right-click the script, 
+    echo  and choose "Run as administrator".
+    echo =====================================================================
+    pause
+    exit /b
+)
