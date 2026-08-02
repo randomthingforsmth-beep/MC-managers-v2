@@ -15,4 +15,4 @@ bedrock:
 
 (i dont have bedrock btw)
 
-plz font mind the titles
+plz dont mind the titles
